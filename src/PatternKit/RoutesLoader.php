@@ -17,9 +17,11 @@ class RoutesLoader
 
     private function instantiateControllers()
     {
-        $this->app['schema.controller'] = $this->app->share(function () {
-            return new Controllers\SchemaController();
-        });
+        $this->app['schema.controller'] = $this->app->share(
+          function () {
+              return new Controllers\SchemaController();
+          }
+        );
     }
 
     public function bindRoutesToControllers()

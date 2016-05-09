@@ -12,10 +12,9 @@ use Carbon\Carbon;
 use Mni\FrontYAML\Parser;
 
 
-
 date_default_timezone_set('America/Los_Angeles');
 
-define("ROOT_PATH", __DIR__ . "/..");
+define("ROOT_PATH", __DIR__."/..");
 
 
 $app = new Application();
@@ -24,22 +23,37 @@ $app->register(new Silex\Provider\UrlGeneratorServiceProvider());
 
 
 //handling CORS preflight request
-$app->before(function (Request $request) {
-   if ($request->getMethod() === "OPTIONS") {
-       $response = new Response();
-       $response->headers->set("Access-Control-Allow-Origin","*");
-       $response->headers->set("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
-       $response->headers->set("Access-Control-Allow-Headers","Content-Type");
-       $response->setStatusCode(200);
-       return $response->send();
-   }
-}, Application::EARLY_EVENT);
+$app->before(
+  function (Request $request) {
+      if ($request->getMethod() === "OPTIONS") {
+          $response = new Response();
+          $response->headers->set("Access-Control-Allow-Origin", "*");
+          $response->headers->set(
+            "Access-Control-Allow-Methods",
+            "GET,POST,PUT,DELETE,OPTIONS"
+          );
+          $response->headers->set(
+            "Access-Control-Allow-Headers",
+            "Content-Type"
+          );
+          $response->setStatusCode(200);
+
+          return $response->send();
+      }
+  },
+  Application::EARLY_EVENT
+);
 
 //handling CORS respons with right headers
-$app->after(function (Request $request, Response $response) {
-   $response->headers->set("Access-Control-Allow-Origin","*");
-   $response->headers->set("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
-});
+$app->after(
+  function (Request $request, Response $response) {
+      $response->headers->set("Access-Control-Allow-Origin", "*");
+      $response->headers->set(
+        "Access-Control-Allow-Methods",
+        "GET,POST,PUT,DELETE,OPTIONS"
+      );
+  }
+);
 
 // //accepting JSON
 // $app->before(function (Request $request) {
@@ -51,12 +65,20 @@ $app->after(function (Request $request, Response $response) {
 
 $app->register(new ServiceControllerServiceProvider());
 
-$app->register(new HttpCacheServiceProvider(), array("http_cache.cache_dir" => ROOT_PATH . "/storage/cache",));
+$app->register(
+  new HttpCacheServiceProvider(),
+  array("http_cache.cache_dir" => ROOT_PATH."/storage/cache",)
+);
 
-$app->register(new MonologServiceProvider(), array(
-    "monolog.logfile" => ROOT_PATH . "/storage/logs/" . Carbon::now('America/Los_Angeles')->format("Y-m-d") . ".log",
-    "monolog.name" => "application"
-));
+$app->register(
+  new MonologServiceProvider(),
+  array(
+    "monolog.logfile" => ROOT_PATH."/storage/logs/".Carbon::now(
+        'America/Los_Angeles'
+      )->format("Y-m-d").".log",
+    "monolog.name" => "application",
+  )
+);
 
 $app['debug'] = true;
 
@@ -66,43 +88,49 @@ $app['debug'] = true;
 //// Twig Template Paths
 $twig_template_paths = array();
 
-array_push($twig_template_paths, ROOT_PATH . '/resources/templates');
+array_push($twig_template_paths, ROOT_PATH.'/resources/templates');
 
 if (is_string($app['config']['paths']['templates'])) {
-    array_push($twig_template_paths, realpath('./' . $app['config']['paths']['templates']) );
-}
-elseif (is_array($app['config']['paths']['templates'])) {
+    array_push(
+      $twig_template_paths,
+      realpath('./'.$app['config']['paths']['templates'])
+    );
+} elseif (is_array($app['config']['paths']['templates'])) {
     foreach ($app['config']['paths']['templates'] as $value) {
-        array_push($twig_template_paths, realpath('./' . $value));
+        array_push($twig_template_paths, realpath('./'.$value));
     }
 }
 
 //// Register Twig
 
-$app->register(new Silex\Provider\TwigServiceProvider(), array(
+$app->register(
+  new Silex\Provider\TwigServiceProvider(),
+  array(
     'twig.path' => $twig_template_paths,
     'twig.options' => array(
-        'strict_variables' => false
-        ),
-));
+      'strict_variables' => false,
+    ),
+  )
+);
 
 
 // Custom Functions
 
 //// Get path to matching asset
-function get_asset_path($name, $type) {
+function get_asset_path($name, $type)
+{
     global $app;
 
     if (in_array($type, array("templates", "data", "schemas", "docs", "sg"))) {
-        $return = NULL;
+        $return = null;
         $paths = $app['config']['paths'][$type];
         if (is_array($paths)) {
-          $paths = array_reverse($paths);
+            $paths = array_reverse($paths);
         }
         if ($paths) {
             foreach ($paths as $path) {
                 $extension = $app['config']['extensions'][$type];
-                $dir =  './' . $path;
+                $dir = './'.$path;
                 $file_path = "{$dir}/{$name}{$extension}";
                 if (is_dir($dir) && is_readable($file_path)) {
                     $return = $file_path;
@@ -112,73 +140,81 @@ function get_asset_path($name, $type) {
         }
 
         return $return;
-    }
-    else {
-        throw new Exception($type . ' is not equal to template, data or schema');
+    } else {
+        throw new Exception($type.' is not equal to template, data or schema');
     }
 }
 
 //// Create Primary Navigation for pattern library
 
-function getNav($pattern) {
-  global $app;
-  $categories = $app['config']['categories'];
-  $schema_paths = array();
-  $nav = array();
-  $nav['title'] = $app['config']['title'];
+function getNav($pattern)
+{
+    global $app;
+    $categories = $app['config']['categories'];
+    $schema_paths = array();
+    $nav = array();
+    $nav['title'] = $app['config']['title'];
 
-  foreach ($app['config']['paths']['schemas'] as $path) {
-    $files = scandir("./" . $path);
-    $schema_paths[] = array(
-        'location' => $path,
-        'files' => $files
-      );
-  }
-
-  if ($categories) {
-      foreach ($categories as $category) {
-        $value = strtolower(str_replace(' ', '_', $category));
-        $nav['categories'][$value] = array();
-        $nav['categories'][$value]['title'] = $category;
-        $nav['categories'][$value]['path'] = '/' . $value;
-      }
-  }
-
-
-  foreach ($schema_paths as $path) {
-    foreach ($path['files'] as $file) {
-      if (strpos($file, 'json') !== false) {
-        $nav_item = array();
-        $contents = json_decode(file_get_contents('./' . $path['location'] . "/" . $file), true);
-        $contents['name'] = substr($file, 0, -5);
-        $category = isset($contents['category']) ? $contents['category'] : false;
-        $nav_item['title'] = isset($contents['title']) ? $contents['title'] : $contents['name'];
-        $nav_item['path'] = $contents['name'];
-        if ($contents['name'] == $pattern) {
-            $nav_item['active'] = true;
-        }
-        if ($category) {
-            $nav['categories'][$category]['items'][] = $nav_item;
-        }
-
-      }
+    foreach ($app['config']['paths']['schemas'] as $path) {
+        $files = scandir("./".$path);
+        $schema_paths[] = array(
+          'location' => $path,
+          'files' => $files,
+        );
     }
-  }
-  return $nav;
+
+    if ($categories) {
+        foreach ($categories as $category) {
+            $value = strtolower(str_replace(' ', '_', $category));
+            $nav['categories'][$value] = array();
+            $nav['categories'][$value]['title'] = $category;
+            $nav['categories'][$value]['path'] = '/'.$value;
+        }
+    }
+
+
+    foreach ($schema_paths as $path) {
+        foreach ($path['files'] as $file) {
+            if (strpos($file, 'json') !== false) {
+                $nav_item = array();
+                $contents = json_decode(
+                  file_get_contents('./'.$path['location']."/".$file),
+                  true
+                );
+                $contents['name'] = substr($file, 0, -5);
+                $category = isset($contents['category']) ? $contents['category'] : false;
+                $nav_item['title'] = isset($contents['title']) ? $contents['title'] : $contents['name'];
+                $nav_item['path'] = $contents['name'];
+                if ($contents['name'] == $pattern) {
+                    $nav_item['active'] = true;
+                }
+                if ($category) {
+                    $nav['categories'][$category]['items'][] = $nav_item;
+                }
+
+            }
+        }
+    }
+
+    return $nav;
 }
 
 
 //// Create secondary navigation for styleguide
 
-function getDocNav($pattern) {
+function getDocNav($pattern)
+{
     global $app;
     $nav = array();
     $parser = new Parser();
 
     foreach ($app['config']['paths']['sg'] as $path) {
-        $files = glob('./' . $path .'/*' . $app['config']['extensions']['sg']);
+        $files = glob('./'.$path.'/*'.$app['config']['extensions']['sg']);
         foreach ($files as $value) {
-            $value_parts = str_split(basename($value), strpos(basename($value), "."));
+            $value_parts = str_split(
+              basename($value),
+              strpos(basename($value), ".")
+            );
             $nav_item = array();
             $sg_file = file_get_contents($value);
             $sg_data = $parser->parse($sg_file);
@@ -189,14 +225,14 @@ function getDocNav($pattern) {
                 $nav_item['active'] = true;
             }
             if ($value_parts[0] == 'index') {
-                $nav_item['path'] = NULL;
+                $nav_item['path'] = null;
                 array_unshift($nav, $nav_item);
-            }
-            else {
-                $nav[] =  $nav_item;
+            } else {
+                $nav[] = $nav_item;
             }
         }
     }
+
     return $nav;
 }
 
@@ -209,11 +245,15 @@ $app->mount('/tests', new PatternKit\TestsControllerProvider());
 $app->mount('/sg', new PatternKit\StyleGuideControllerProvider());
 
 
-$app->get('/', function () use ($app) {
-    $data = array();
-    $data['nav'] = getNav('/');
-    return $app['twig']->render("display-schema.twig", $data);
-});
+$app->get(
+  '/',
+  function () use ($app) {
+      $data = array();
+      $data['nav'] = getNav('/');
+
+      return $app['twig']->render("display-schema.twig", $data);
+  }
+);
 
 
 // $app->get('/{category}', function ($category) use ($app) {
@@ -232,18 +272,19 @@ $app->get('/', function () use ($app) {
 // }
 
 
+$app->error(
+  function (\Exception $e, $code) use ($app) {
+      $app['monolog']->addError($e->getMessage());
+      $app['monolog']->addError($e->getTraceAsString());
 
-
-
-$app->error(function (\Exception $e, $code) use ($app) {
-    $app['monolog']->addError($e->getMessage());
-    $app['monolog']->addError($e->getTraceAsString());
-    return new JsonResponse(array("statusCode" => $code, "message" => $e->getMessage(), "stacktrace" => $e->getTraceAsString()));
-});
+      return new JsonResponse(
+        array(
+          "statusCode" => $code,
+          "message" => $e->getMessage(),
+          "stacktrace" => $e->getTraceAsString(),
+        )
+      );
+  }
+);
 
 return $app;
-
-
-
-
-?>
