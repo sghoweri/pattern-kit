@@ -1,10 +1,13 @@
 <?php
-namespace PatternKit;
 
+namespace PatternKit;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
+use JsonSchema\Uri\UriRetriever;
+use JsonSchema\RefResolver;
+use JsonSchema\Validator;
 
 class ApiControllerProvider implements ControllerProviderInterface
 {
@@ -26,32 +29,31 @@ class ApiControllerProvider implements ControllerProviderInterface
                   $contents = json_decode($request->getContent(), true);
 
                   if (isset($app['config'])) {
-                      $contents["app_config"] = $app['config'];
+                      $contents['app_config'] = $app['config'];
                   }
 
-                  if ($target == "page") {
+                  if ($target == 'page') {
                       if ($contents['name'] || $contents['template']) {
-                          return $app['twig']->render("basic.twig", $contents);
+                          return $app['twig']->render('basic.twig', $contents);
                       } else {
-                          return "sorry";
+                          return 'sorry';
                       }
                   }
 
-                  if (!empty($contents["template"])) {
+                  if (!empty($contents['template'])) {
                       return $app['twig']->render(
-                        $contents["template"],
+                        $contents['template'],
                         $contents
                       );
                   } else {
                       return $app['twig']->render(
-                        $contents["name"].'.twig',
+                        $contents['name'].'.twig',
                         $contents
                       );
                   }
               }
           }
         );
-
 
         $controllers->post(
           '/validate',
@@ -63,7 +65,7 @@ class ApiControllerProvider implements ControllerProviderInterface
                 )
               ) {
 
-                  function traverse($data, &$to_test, $i = 0, $path = "root")
+                  function traverse($data, &$to_test, $i = 0, $path = 'root')
                   {
                       foreach ($data as $key => &$value) {
                           if (is_array($value)) {
@@ -71,11 +73,11 @@ class ApiControllerProvider implements ControllerProviderInterface
                               foreach ($value as $key => $item) {
                                   if (is_object($item)) {
                                       if ($item->name) {
-                                          $location = $path.".".$array_name.".".$key;
+                                          $location = $path.'.'.$array_name.'.'.$key;
                                           $to_test[] = array(
-                                            "depth" => $i,
-                                            "obj" => $item,
-                                            "path" => $location,
+                                            'depth' => $i,
+                                            'obj' => $item,
+                                            'path' => $location,
                                           );
                                       }
                                       traverse(
@@ -98,13 +100,16 @@ class ApiControllerProvider implements ControllerProviderInterface
 
                   function test($data, &$reply)
                   {
-                      $retriever = new \JsonSchema\Uri\UriRetriever;
-                      $refResolver = new \JsonSchema\RefResolver($retriever);
+                      global $app;
+                      $retriever = new UriRetriever;
+                      $refResolver = new RefResolver($retriever);
                       $refResolver::$maxDepth = 9999;
-                      $validator = new \JsonSchema\Validator();
-                      $valid = true;
+                      $validator = new Validator();
                       foreach ($data as $item) {
-                          $path = get_asset_path($item['obj']->name, 'schemas');
+                          $path = $app['loader']->getAssetPath(
+                            $item['obj']->name,
+                            'schemas'
+                          );
                           $schema = $retriever->retrieve(
                             'file://'.realpath($path)
                           );
@@ -114,14 +119,13 @@ class ApiControllerProvider implements ControllerProviderInterface
                           $validator->check($item['obj'], $schema);
 
                           if (!$validator->isValid()) {
-                              $valid = false;
                               foreach ($validator->getErrors() as $error) {
                                   $path = $item['path'];
                                   $name = $item['obj']->name;
                                   $property = $error['property'];
                                   $message = $error['message'];
                                   $reply .= sprintf(
-                                    "Error at %s: <br> %s [%s] %s\n <br><br>",
+                                    'Error at %s: <br> %s [%s] %s\n <br><br>',
                                     $path,
                                     $name,
                                     $property,
@@ -134,16 +138,16 @@ class ApiControllerProvider implements ControllerProviderInterface
                   }
 
                   $to_test = array();
-                  $reply = "";
-                  $retriever = new \JsonSchema\Uri\UriRetriever;
-                  $refResolver = new \JsonSchema\RefResolver($retriever);
+                  $reply = '';
+                  $retriever = new UriRetriever;
+                  $refResolver = new RefResolver($retriever);
                   $refResolver::$maxDepth = 9999;
-                  $validator = new \JsonSchema\Validator();
+                  $validator = new Validator();
 
                   $data = (object)json_decode($request->getContent());
 
 
-                  $path = get_asset_path($data->name, 'schemas');
+                  $path = $app['loader']->getAssetPath($data->name, 'schemas');
 
                   $schema = $retriever->retrieve('file://'.realpath($path));
 
@@ -156,24 +160,19 @@ class ApiControllerProvider implements ControllerProviderInterface
                       $reply = "The supplied JSON validates against the schema.\n";
                   } else {
                       $to_test[] = array(
-                        "depth" => 0,
-                        "obj" => $data,
-                        "path" => "root",
+                        'depth' => 0,
+                        'obj' => $data,
+                        'path' => 'root',
                       );
                       traverse($data, $to_test);
                       test($to_test, $reply);
                   }
 
                   return $reply;
-
               }
-
           }
         );
-
 
         return $controllers;
     }
 }
-
-?>

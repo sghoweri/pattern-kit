@@ -1,9 +1,13 @@
 <?php
-namespace PatternKit;
 
+namespace PatternKit;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
+use JsonSchema\Uri\UriRetriever;
+use JsonSchema\RefResolver;
+use PatternKit\Navigation\Navigation;
+use Mni\FrontYAML\Parser;
 
 class SchemaControllerProvider implements ControllerProviderInterface
 {
@@ -15,20 +19,21 @@ class SchemaControllerProvider implements ControllerProviderInterface
         $controllers->get(
           '/{pattern}',
           function ($pattern) use ($app) {
-
-              $retriever = new \JsonSchema\Uri\UriRetriever;
-              $path = get_asset_path($pattern, 'schemas');
-              $seed_path = get_asset_path($pattern, 'data');
-              $template_path = get_asset_path($pattern, 'templates');
-              $docs_path = get_asset_path($pattern, 'docs');
+              $retriever = new UriRetriever;
+              $path = $app['loader']->getAssetPath($pattern, 'schemas');
+              $seed_path = $app['loader']->getAssetPath($pattern, 'data');
+              $template_path = $app['loader']->getAssetPath(
+                $pattern,
+                'templates'
+              );
+              $docs_path = $app['loader']->getAssetPath($pattern, 'docs');
               $data = array();
-
 
               $schema = $retriever->retrieve('file://'.realpath($path));
 
               // Navigation
-              $data['nav'] = getNav($pattern);
-              if (array_key_exists('sg', $app["config"]["paths"])) {
+              $data['nav'] = Navigation::getNav($pattern);
+              if (array_key_exists('sg', $app['config']['paths'])) {
                   $data['nav']['sg_active'] = true;
               }
               // end navigation
@@ -46,19 +51,17 @@ class SchemaControllerProvider implements ControllerProviderInterface
                   $seed_data = array();
               }
 
-
-              $refResolver = new \JsonSchema\RefResolver($retriever);
+              $refResolver = new RefResolver($retriever);
               $refResolver::$maxDepth = 9999;
               $refResolver->resolve($schema);
 
               if (isset($app['config'])) {
-                  $data["app_config"] = $app['config'];
+                  $data['app_config'] = $app['config'];
               }
-
 
               $docs_file = file_get_contents('file://'.realpath($docs_path));
 
-              $parser = new \Mni\FrontYAML\Parser;;
+              $parser = new Parser;
 
               $docs_data = $parser->parse($docs_file);
 
@@ -79,8 +82,7 @@ class SchemaControllerProvider implements ControllerProviderInterface
                   $data['template_markup'] = $template_file;
 
               }
-
-              return $app['twig']->render("display-schema.twig", $data);
+              return $app['twig']->render('display-schema.twig', $data);
 
           }
         )->bind('schema');
@@ -88,5 +90,3 @@ class SchemaControllerProvider implements ControllerProviderInterface
         return $controllers;
     }
 }
-
-?>

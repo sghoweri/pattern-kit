@@ -1,10 +1,11 @@
 <?php
-namespace PatternKit;
 
+namespace PatternKit;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
 use Mni\FrontYAML\Parser;
+use PatternKit\Navigation\Navigation;
 
 class StyleGuideControllerProvider implements ControllerProviderInterface
 {
@@ -17,9 +18,7 @@ class StyleGuideControllerProvider implements ControllerProviderInterface
         $controllers->get(
           '/',
           function ($pattern) use ($app) {
-
-
-              $sg_path = get_asset_path($pattern, 'sg');
+              $sg_path = $app['loader']->get_asset_path($pattern, 'sg');
 
               $sg_file = file_get_contents('file://'.realpath($sg_path));
 
@@ -28,25 +27,22 @@ class StyleGuideControllerProvider implements ControllerProviderInterface
               $sg_data = $parser->parse($sg_file);
 
               if (isset($app['config'])) {
-                  $data["app_config"] = $app['config'];
+                  $data['app_config'] = $app['config'];
               }
 
-
-              $data['secondary_nav'] = getDocNav($pattern);
-              $data['nav'] = getNav($pattern);
+              $data['secondary_nav'] = Navigation::getDocNav($pattern);
+              $data['nav'] = Navigation::getNav($pattern);
               $data['sg_yaml'] = $sg_data->getYAML();
               $data['sg_content'] = $sg_data->getContent();
 
-              return $app['twig']->render("display-sg.twig", $data);
+              return $app['twig']->render('display-sg.twig', $data);
           }
-        )->value('pattern', "index")->bind('styleguide-home');
+        )->value('pattern', 'index')->bind('styleguide-home');
 
         $controllers->get(
           '/{pattern}',
           function ($pattern) use ($app) {
-
-
-              $sg_path = get_asset_path($pattern, 'sg');
+              $sg_path = $app['loader']->get_asset_path($pattern, 'sg');
 
               $sg_file = file_get_contents('file://'.realpath($sg_path));
 
@@ -55,24 +51,18 @@ class StyleGuideControllerProvider implements ControllerProviderInterface
               $sg_data = $parser->parse($sg_file);
 
               if (isset($app['config'])) {
-                  $data["app_config"] = $app['config'];
+                  $data['app_config'] = $app['config'];
               }
 
-
-              $data['secondary_nav'] = getDocNav($pattern);
-              $data['nav'] = getNav($pattern);
+              $data['secondary_nav'] = Navigation::getDocNav($pattern);
+              $data['nav'] = Navigation::getNav($pattern);
               $data['sg_yaml'] = $sg_data->getYAML();
               $data['sg_content'] = $sg_data->getContent();
 
-              return $app['twig']->render("display-sg.twig", $data);
+              return $app['twig']->render('display-sg.twig', $data);
           }
         )->bind('styleguide');
-
-
+        
         return $controllers;
     }
 }
-
-?>
-
-
