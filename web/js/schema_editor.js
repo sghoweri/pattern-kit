@@ -94,18 +94,53 @@ var editor_update = function (markup, json) {
   );
 };
 
+
+function serialize(obj, prefix) {
+  var str = [], p;
+  for(p in obj) {
+    if (obj.hasOwnProperty(p)) {
+      var k = prefix ? prefix + "[" + p + "]" : p, v = obj[p];
+      str.push((v !== null && typeof v === "object") ?
+        serialize(v, k) :
+        encodeURIComponent(k) + "=" + encodeURIComponent(v));
+    }
+  }
+  return str.join("&");
+}
 var updateDirectLink = function () {
   var url = window.location.href.replace(/\?.*/, '');
 
-  url += '?data=' + LZString.compressToBase64(JSON.stringify(editor.getValue()));
-  document.getElementById('direct_link').href = url;
+  var data = JSON.stringify(editor.getValue());
+
+  // var jsonURL = serialize(editor.getValue());
+
+  // console.log(jsonURL);
+
+  // url += '?data=' + LZString.compressToBase64(JSON.stringify(editor.getValue()));
+
+  var directUrl = '?data=' + btoa(data);
+  var standalonePage = '/api/render/page' + '?template=' + JSON.parse(data).name + '&' + 'data=' + btoa(data);
+
+  // console.log(standalonePage);
+  // http://localhost:8000/api/render/page?template=card&data=eyJuYW1lIjoiY2FyZCIsImJhY2tncm91bmQiOiJibGFjayIsImJvZHkiOlt7Im5hbWUiOiJpbWFnZSIsInNyYyI6Ii9zcmMvaW1hZ2VzL3R1cnRsZS5qcGciLCJhbHQiOiJBIHR1cnRsZSIsInRpdGxlIjoiVGhpcyB0dXJ0bGUgaXMgZXhjaXRlZCEifSx7Im5hbWUiOiJxdW90ZSIsInF1b3RhdGlvbiI6IlllcywgZnJpZW5kcywgdGhlIG5ldyB0dWJvIGdpbnN1LiBXYS1ob28hIEl0IGRpY2VzLCBpdCBzbGljZXMsIGFuZCBpdCBtYWtlcyBGcmVuY2ggZnJpZXMgd2l0aCB0aHJlZSBkaWZmZXJlbnQgY3V0cy4gWWF5ISIsImF0dHJpYnV0aW9uIjp7Im5hbWUiOiJNaWNoYWVsYW5nZWxvIiwidGl0bGUiOiJBIFRlZW5hZ2UgTXV0YW50IE5pbmphIFR1cnRsZSJ9fV19
+  // // var jsonURL = url + '?data=' + jsonURL;
+
+  document.getElementById('direct_link').href = directUrl;
+  document.getElementById('direct_link_new_window').href = standalonePage;
 };
 
 if (window.location.href.match('[?&]data=([^&]+)')) {
   try {
-    data.starting = JSON.parse(LZString.decompressFromBase64(window.location.href.match('[?&]data=([^&]+)')[1]));
+
+
+
+    // data.starting = '';
+    // data.starting = JSON.parse(LZString.decompressFromBase64(window.location.href.match('[?&]data=([^&]+)')[1]));
+    data.starting = JSON.parse(atob(window.location.href.match('[?&]data=([^&]+)')[1]));
   }
   catch (e) {
+    // console.log(getParameterByName('data'));
+
     console.log('invalid starting data');
   }
 }
@@ -185,4 +220,3 @@ editor.on(
     );
   }, 500)
 );
-

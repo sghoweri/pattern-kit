@@ -48,7 +48,11 @@ class ApiControllerProvider implements ControllerProviderInterface {
 
           // If configuration data is supplied, unencode and apply.
           if (!empty($params['data'])) {
-            $contents = gzinflate(urldecode($params['data']));
+            if (is_array($params['data'])){
+              $contents = $params['data'];
+            } elseif (is_string($params['data'])) {
+              $contents = json_decode(base64_decode($params['data']), true);
+            }
           }
           break;
     }
@@ -234,4 +238,3 @@ class ApiControllerProvider implements ControllerProviderInterface {
     return $controllers;
   }
 }
-
