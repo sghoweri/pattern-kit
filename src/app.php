@@ -9,6 +9,7 @@ use Silex\Application;
 use Silex\Provider\HttpCacheServiceProvider;
 use Silex\Provider\ServiceControllerServiceProvider;
 use DerAlex\Silex\YamlConfigServiceProvider;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Yaml\Yaml;
@@ -133,6 +134,12 @@ function get_asset_path($name, $type) {
   ))) {
     $return = NULL;
     $paths  = $app['config']['paths'][$type];
+    
+    
+    // // $finder->files()->in(__DIR__);
+    // foreach ($finder as $file) {
+
+    
     if (is_array($paths)) {
       $paths = array_reverse($paths);
     }
@@ -143,6 +150,15 @@ function get_asset_path($name, $type) {
         $dir            = './' . $path;
         $file_path      = "{$dir}/{$name}{$extension}";
         $yaml_file_path = "{$dir}/{$name}{$yaml_extension}";
+        
+        
+        
+        $file_path2 = new Finder();
+        $file_path2->name($name . $extension)->in($dir);
+        print_r($file_path2);
+        
+        
+        
         if (is_dir($dir) && is_readable($file_path)) {
           $return = $file_path;
           break;
