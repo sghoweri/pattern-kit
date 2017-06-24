@@ -20,6 +20,13 @@ extensions:
   templates: .twig
   docs: .docs.md
   sg: .sg.md
+# extensions:
+#   data: .data.json
+#   test_data: .test.json
+#   schemas: .schema.json
+#   templates: .twig
+#   docs: .docs.md
+#   sg: .sg.md
 categories:
     - Pattern
     - Sub Pattern

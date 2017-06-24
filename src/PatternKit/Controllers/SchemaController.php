@@ -8,9 +8,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SchemaController
 {
-
+  
     public function getTests($name, $data_array)
     {
+        // die;
+        
         return $name . $data;
     }
 

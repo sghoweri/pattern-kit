@@ -4,6 +4,7 @@
  *
  * The main app code, contains all initialization.
  */
+require __DIR__ . '/../vendor/autoload.php';
 
 use Silex\Application;
 use Silex\Provider\HttpCacheServiceProvider;
@@ -148,14 +149,36 @@ function get_asset_path($name, $type) {
         $extension      = $app['config']['extensions'][$type];
         $yaml_extension = str_replace('.json', '.yaml', $extension);
         $dir            = './' . $path;
-        $file_path      = "{$dir}/{$name}{$extension}";
+        // $file_path      = "{$dir}/{$name}{$extension}";
         $yaml_file_path = "{$dir}/{$name}{$yaml_extension}";
+        
+        
+        // $yaml_path = new Finder();
+        // $yaml_path->name($name . $yaml_extension)->in('./');
+        // 
+        // 
+        // foreach ($yaml_path as $file) {
+        //     // Dump the absolute path
+        //     var_dump($file->getRealPath());
+        //     // $file_path      = $file->getRealPath();
+        //     // $file_path      = "{$dir}/{$name}{$extension}";
+        // 
+        //     // Dump the relative path to the file, omitting the filename
+        //     // var_dump($file->getRelativePath());
+        // 
+        //     // Dump the relative path to the file
+        //     // var_dump($file->getRelativePathname());
+        // }
         
         
         
         $file_path2 = new Finder();
-        $file_path2->name($name . $extension)->in($dir);
-        print_r($file_path2);
+        $file_path2->name($name . $extension)->in('./');
+        // print_r($name . $extension);
+        
+        foreach ($file_path2 as $file) {
+          $file_path      = $file->getRealPath();
+        }
         
         
         
@@ -192,15 +215,47 @@ function getNav($pattern) {
   $schema_paths = array();
   $nav          = array();
   $nav['title'] = $app['config']['title'];
-
-  foreach ($app['config']['paths']['schemas'] as $path) {
+  
+  
+  
+  $unique_paths = array();
+  $new_schema_paths = array();
+  $schema_paths2 = new Finder();
+  $schema_paths2->name('*.json')->in('./')->contains('"$schema":');
+  
+  /** 
+    * 1. Get the relative path for every instance of a schema
+    * 2. Clean up the duplicates so the nav shows just 1 of everything
+    */
+  foreach ($schema_paths2 as $file) {
+    $unique_paths[] = $file->getRelativePath(); /* [1] */
+  }
+  
+  foreach (array_unique($unique_paths) as $path) { /* [2] */
     $files = scandir("./" . $path);
-
-    $schema_paths[] = array(
+    $new_schema_paths[] = array(
       'location' => $path,
       'files'    => $files,
     );
   }
+  
+  
+  // print_r($new_schema_paths);
+  
+  
+  
+  
+
+  // foreach ($app['config']['paths']['schemas'] as $path) {
+  //   $files = scandir("./" . $path);
+  //   
+  //   // print_r($files);
+  // 
+  //   $schema_paths[] = array(
+  //     'location' => $path,
+  //     'files'    => $files,
+  //   );
+  // }
 
   if ($categories) {
     foreach ($categories as $category) {
@@ -213,7 +268,7 @@ function getNav($pattern) {
   }
 
 
-  foreach ($schema_paths as $path) {
+  foreach ($new_schema_paths as $path) {
     foreach ($path['files'] as $file) {
       if (strpos($file, 'json') !== FALSE) {
         $nav_item = array();
@@ -285,19 +340,44 @@ function listPatterns() {
   global $app;
   $schema_paths = array();
   $list         = array();
-
-  // Read configuration and collect the list of schema folders.
-  foreach ($app['config']['paths']['schemas'] as $path) {
+  
+  $new_schema_paths = array();
+  $schema_paths2 = new Finder();
+  $schema_paths2->name('*.json')->in('./')->contains('"$schema":');
+  $unique_paths = array();
+  
+  /** 
+    * 1. Get the relative path for every instance of a schema
+    * 2. Clean up the duplicates so the nav shows just 1 of everything
+    */
+  foreach ($schema_paths2 as $file) {
+    $unique_paths[] = $file->getRelativePath(); /* [1] */
+  }
+  
+  foreach (array_unique($unique_paths) as $path) { /* [2] */
     $files = scandir("./" . $path);
 
-    $schema_paths[] = array(
+    $new_schema_paths[] = array(
       'location' => $path,
       'files'    => $files,
     );
   }
+  
+  // 
+  // 
+  // 
+  // // Read configuration and collect the list of schema folders.
+  // foreach ($app['config']['paths']['schemas'] as $path) {
+  //   $files = scandir("./" . $path);
+  // 
+  //   $schema_paths[] = array(
+  //     'location' => $path,
+  //     'files'    => $files,
+  //   );
+  // }
 
   // Iterate over the schema paths to find all schema.
-  foreach ($schema_paths as $path) {
+  foreach ($new_schema_paths as $path) {
     // For each file in the schema folder(s).
     foreach ($path['files'] as $raw_filename) {
       $file = strtolower($raw_filename);
